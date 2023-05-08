@@ -32,6 +32,8 @@ export default function Details() {
     register,
     formState: { errors },
     setError,
+    setValue,
+    clearErrors,
   } = useForm<FormData>({
     resolver: zodResolver(usernameSchema),
   })
@@ -40,13 +42,14 @@ export default function Details() {
   const { cache, addToCache, removeItem } = useCache()
 
   async function fetchStats(data: FormData) {
-    setLoading(true)
     addToCache(data.username)
     await fetchUsernameStats(data.username)
-    setLoading(false)
   }
 
   async function fetchUsernameStats(username: string) {
+    clearErrors("username")
+    setValue("username", username)
+    setLoading(true)
     const statsData = await fetch(
       `https://api.gametools.network/bf2042/stats/?raw=false&format_values=true&name=${username}&platform=pc&skip_battlelog=false`
     ).then((res) => res.json())
@@ -54,6 +57,7 @@ export default function Details() {
     if (statsData.errors)
       setError("username", { type: "custom", message: statsData.errors[0] })
     if (!statsData.errors) setPlayerStats(statsData)
+    setLoading(false)
   }
 
   return (
@@ -89,12 +93,9 @@ export default function Details() {
                     {localeNumber(playerStats.kills + playerStats.deaths)}
                   </li>
                   <li>
-                    <b>Wins/Loses:</b>{" "}
-                    {playerStats.wins.toLocaleString("en-US")}/
-                    {playerStats.loses.toLocaleString("en-US")} -&gt;{" "}
-                    {(playerStats.wins + playerStats.loses).toLocaleString(
-                      "en-US"
-                    )}
+                    <b>Wins/Loses:</b> {localeNumber(playerStats.wins)}/
+                    {localeNumber(playerStats.loses)} -&gt;{" "}
+                    {localeNumber(playerStats.wins + playerStats.loses)}
                   </li>
                   <li>
                     <b>Accuracy (shots fired/shots hit):</b>{" "}
@@ -193,6 +194,9 @@ export default function Details() {
               <div
                 key={r}
                 className="w-full flex justify-between items-center px-2 py-2 text-sm cursor-pointer bg-gray-100 hover:bg-gray-300 dark:bg-gray-800 rounded-md mb-2 dark:hover:bg-gray-900"
+                onClick={() => {
+                  fetchUsernameStats(r)
+                }}
               >
                 <p>{r}</p>
                 <span>
